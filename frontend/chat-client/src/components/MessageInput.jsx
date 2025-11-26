@@ -1,19 +1,34 @@
 import { useState } from "react";
 
-export default function MessageInput() {
+const API_BASE = "http://127.0.0.1:5000";
+
+export default function MessageInput({ onMessageSent }) {
   const [text, setText] = useState("");
   const [username, setUsername] = useState("");
+  const [sending, setSending] = useState(false);
 
   const sendMessage = async () => {
-    if (!text.trim() || !username.trim()) return;
+    if (!text.trim() || !username.trim() || sending) return;
 
-    await fetch("http://127.0.0.1:5000/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, text }),
-    });
+    try {
+      setSending(true);
+      await fetch(`${API_BASE}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, text }),
+      });
 
-    setText("");
+      setText("");
+
+      // Ask parent to refresh messages
+      if (typeof onMessageSent === "function") {
+        onMessageSent();
+      }
+    } catch (err) {
+      console.error("Failed to send message:", err);
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -37,8 +52,8 @@ export default function MessageInput() {
         onKeyDown={handleKeyDown}
       />
 
-      <button className="send-button" onClick={sendMessage}>
-        Send
+      <button className="send-button" onClick={sendMessage} disabled={sending}>
+        {sending ? "Sending..." : "Send"}
       </button>
     </div>
   );
